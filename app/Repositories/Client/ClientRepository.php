@@ -4,7 +4,7 @@ namespace App\Repositories\Client;
 
 use App\Repositories\Client\ClientInterface as ClientInterface;
 use App\Models\Clients;
-
+use Illuminate\Database\Eloquent\Model;
 
 class ClientRepository implements ClientInterface
 {
@@ -31,5 +31,15 @@ class ClientRepository implements ClientInterface
     public function delete($id)
     {
         //
+    }
+
+    /**
+    * @param array $attributes
+    *
+    * @return Model
+    */
+    public function create(array $attributes): Model
+    {
+        return $this->client->create($attributes);
     }
 }

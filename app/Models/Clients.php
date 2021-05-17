@@ -24,6 +24,10 @@ class Clients extends Model
         'zip',
         'phone_no1',
         'phone_no2',
+        'latitude',
+        'longitude',
+        'start_validity',
+        'end_validity'
     ];
 
     protected $appends = [

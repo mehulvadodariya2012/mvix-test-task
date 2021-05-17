@@ -43,29 +43,32 @@ class APIController
             return response()->json( $validator->errors(), 400);
         }
 
-        $client = new Clients();
-        $client->client_name = $request->name;
-        $client->address1 = $request->address1;
-        $client->address2 = $request->address2;
-        $client->city = $request->city;
-        $client->state = $request->state;
-        $client->country = $request->country;
-        $client->zip = $request->zipCode;
-        $client->phone_no1 = $request->phoneNo1;
-        $client->phone_no2 = $request->phoneNo2 ?? '';
+        
+        
+        
 
         // CALL GEO API TO GET LAT-LONG
         $key = config('app.google_api_key');
         $response = Http::get('https://maps.googleapis.com/maps/api/geocode/json?key='.$key.'&address='.$request->address1.', '.$request->address2.', '.$request->city.', '.$request->zipCode);
     	$latLong = $response->json();
 
-        $client->latitude = $latLong->latitude ?? '0';
-        $client->longitude = $latLong->longitude ?? '0';
-
         $dt = Carbon::now();
-        $client->start_validity = $dt->toDateString();
-        $client->end_validity = $dt->addDay(15);
-        $client->save();
+        $clientInfo = array(
+            'client_name' => $request->name,
+            'address1' => $request->address1,
+            'address2' => $request->address2,
+            'city' => $request->city,
+            'state' => $request->state,
+            'country' => $request->country,
+            'zip' => $request->zipCode,
+            'phone_no1' => $request->phoneNo1,
+            'phone_no2' => $request->phoneNo2 ?? '',
+            'latitude' => $latLong->latitude ?? '0',
+            'longitude' => $latLong->longitude ?? '0',
+            'start_validity' => $dt->toDateString(),
+            'end_validity' => $dt->addDay(15),
+        );
+        $client = $this->client->create($clientInfo);
         
         if(isset($client->id)){
 
