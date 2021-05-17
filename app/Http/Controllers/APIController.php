@@ -2,17 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\BaseController as BaseController;
+use App\Http\Resources\ClientCollection;
 use App\Http\Resources\ClientResource;
 use Illuminate\Http\Request;
 use App\Models\Clients;
 use App\Models\ClientUsers;
+use App\Repositories\Client\ClientInterface;
 use Carbon\Carbon;
 use Validator;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Redis;
 
-class APIController extends BaseController
+class APIController
 {
+    public function __construct(ClientInterface $client)
+    {
+        $this->client = $client;
+    }
+    
     public function register(Request $request) {
         $validator = Validator::make($request->all(), [
             'name' => 'required',
@@ -33,7 +40,7 @@ class APIController extends BaseController
         ]);
 
         if($validator->fails()){
-            return $this->sendError('Validation Error.', $validator->errors());
+            return response()->json( $validator->errors(), 400);
         }
 
         $client = new Clients();
@@ -49,10 +56,8 @@ class APIController extends BaseController
 
         // CALL GEO API TO GET LAT-LONG
         $key = config('app.google_api_key');
-        $response = Http::get('https://maps.googleapis.com/maps/api/geocode/json?key='.$key.'&address='.$request->address1.' '.$request->address2);
+        $response = Http::get('https://maps.googleapis.com/maps/api/geocode/json?key='.$key.'&address='.$request->address1.', '.$request->address2.', '.$request->city.', '.$request->zipCode);
     	$latLong = $response->json();
-        \Log::info($key);
-        \Log::info($latLong);
 
         $client->latitude = $latLong->latitude ?? '0';
         $client->longitude = $latLong->longitude ?? '0';
@@ -61,8 +66,11 @@ class APIController extends BaseController
         $client->start_validity = $dt->toDateString();
         $client->end_validity = $dt->addDay(15);
         $client->save();
-
+        
         if(isset($client->id)){
+
+            //Cache API Response
+            Redis::set('client-geo-'.$client->id, $response->json());
             $client_user = new ClientUsers();
             $client_user->client_id = $client->id;
             $client_user->first_name = $request->user['firstName'];
@@ -75,13 +83,12 @@ class APIController extends BaseController
             $client_user->save();
         }
 
-        return $this->sendResponse($client, 'Client register successfully.');
+        return response()->json(['msg' => 'Client register successfully.', 'client' => $client] );
     }
 
     public function account(Request $request) {
-        $client = Clients::select('id', 'client_name as name', 'address1', 'address2', 'city', 'state', 'country', 'zip as zipCode', 'latitude', 'longitude', 'phone_no1 as phoneNo1', 'phone_no2 as phoneNo2', 'start_validity as startValidity', 'end_validity as endValidity', 'status', 'created_at as createdAt', 'updated_at as updatedAt')
-        ->paginate(2);
-
-        return $this->sendResponse(new ClientResource($client), 'Client data.');
+        
+        $client = $this->client->getAll();
+        return response()->json(new ClientCollection($client));
     }
 }
