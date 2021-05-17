@@ -1,13 +1,11 @@
 <?php
-​
 namespace Tests\Feature;
-​
+
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 use Symfony\Component\HttpFoundation\Response;
 use App\Repositories\Client\ClientInterface;
-​
 class ApiTest extends TestCase
 {
     /**
@@ -43,7 +41,7 @@ class ApiTest extends TestCase
         $response->assertStatus(200);
         $response->assertSuccessful();
     }
-​
+
     public function test_add_client_user_data_validation()
     {
         $this->withoutExceptionHandling();
@@ -71,7 +69,7 @@ class ApiTest extends TestCase
         $response = $this->json('POST', '/api/register',$data);
         $response->assertStatus(400);
     }
-    
+
     public function test_get_client_user_data_success()
     {        
         $response = $this->json('GET', '/api/account');
